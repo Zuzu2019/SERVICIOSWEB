@@ -3,7 +3,7 @@
     ini_set("log_errors", 1);
     ini_set("error_log", "reportes/php-error-producto.log");
 
-	require_once 'vendor/autoload.php';
+	require_once '../vendor/autoload.php';
     //require_once 'nusoap/lib/nusoap.php';		//PHP v7.4.x o inferior
     
     /**
@@ -22,12 +22,43 @@
 	$server->decode_utf8 = false;
 	$server->encode_utf8 = true;
 
+
+    //Creación de tipos complejos
+    $server->wsdl->addComplexType(
+        'RespuestaGetProd',
+        'complexType',
+        'struct',
+        'all',
+        '',
+        array(
+            'code' => ['name' => 'code', 'type' => 'xsd:string'],
+            'message' => ['name' => 'message', 'type' => 'xsd:string'],
+            'data' => ['name' => 'data', 'type' => 'xsd:string'],
+            'status' => ['name' => 'status', 'type' => 'xsd:string']
+        )
+    );
+    $server->wsdl->addComplexType(
+        'RespuestaGetDetails',
+        'complexType',
+        'struct',
+        'all',
+        '',
+        array(
+            'code' => ['name' => 'code', 'type' => 'xsd:string'],
+            'message' => ['name' => 'message', 'type' => 'xsd:string'],
+            'data' => ['name' => 'data', 'type' => 'xsd:string'],
+            'status' => ['name' => 'status', 'type' => 'xsd:string'],
+            'oferta' => ['name' => 'oferta', 'type' => 'xsd:boolean']
+        )
+    );
     /**
         REGISTRO DE LA OPERACIÓN getProd EN LA INTERFAZ DEL SERVICIO (WSDL)
     */
     $server->register( 'getProd',                               // Nombre de la operación (método)
-                        array('categoria' => 'xsd:string'),     // Lista de parámetros; varios de tipo simple o un tipo complejo
-                        array('return' => 'xsd:string'),        // Respuesta; de tipo simple o de tipo complejo
+                        array( 'user' => 'xsd:string',
+                               'pass' => 'xsd:string' ,
+                               'categoria' => 'xsd:string'),     // Lista de parámetros; varios de tipo simple o un tipo complejo
+                        array('return' => 'tns:RespuestaGetProd'),        // Respuesta; de tipo simple o de tipo complejo
                         'urn:producto',                         // Namespace para entradas (input) y salidas (output)
                         'urn:producto#getProd',                 // Nombre de la acción (soapAction)
                         'rpc',                                  // Estilo de comunicación (rpc|document)
@@ -36,8 +67,10 @@
                      );
 
     $server->register( 'getDetails',                               // Nombre de la operación (método)
-                        array('isbn' => 'xsd:string'),     // Lista de parámetros; varios de tipo simple o un tipo complejo
-                        array('return' => 'xsd:string'),        // Respuesta; de tipo simple o de tipo complejo
+                        array( 'user' => 'xsd:string',
+                               'pass' => 'xsd:string',
+                               'isbn' => 'xsd:string'),     // Lista de parámetros; varios de tipo simple o un tipo complejo
+                        array('return' => 'tns:RespuestaGetDetails'),        // Respuesta; de tipo simple o de tipo complejo
                         'urn:producto',                         // Namespace para entradas (input) y salidas (output)
                         'urn:producto#getDetails',                 // Nombre de la acción (soapAction)
                         'rpc',                                  // Estilo de comunicación (rpc|document)
@@ -138,34 +171,137 @@
         ]
     );
 
-    function getProd($categoria) {
+    //Arreglo de los diferentes tipos de respuesta
+    $respuestas = array(
+        200 => 'Categoría encontrada exitosamente.',
+        201 => 'ISBN encontrado exitosamente.',
+        300 => 'Categoría no encontrada.',
+        301 => 'ISBN no encontrado.',
+        500 => 'Usuario no reconocido.',
+        501 => 'Password no reconocido.',
+        999 => 'Error no identificado'
+    );
+    // Array de la respuesta para el metodo getProduct
+    $resp = array(
+        'code' => 999,
+        'message' => $respuestas[999],
+        'data' => '',
+        'status' => 'error'
+    );
+
+    //Array de la respuesta para el metodo getDetails
+    $resp2 = array(
+        'code' => 999,
+        'message' => $respuestas[999],
+        'data' => '',
+        'status' => 'error',
+        'oferta' => 'false'
+    );
+    //arreglo que gestiona a los usuarios y sus contraseñas
+    $usuarios = array(
+        'pruebas1' => 'de88e3e4ab202d87754078cbb2df6063',
+        'pruebas2' => '6796ebbb111298d042de1a20a7b9b6eb',
+        'pruebas3' => 'f7e999012e3700d47e6cb8700ee9cf19',
+    );
+
+    function getProd($user, $pass, $categoria) {
+        $respuesta = '';
+        $res = '';
         global $productos;
+        global $usuarios;
         $categoria = strtolower($categoria);
+        if(isset($usuarios[$user])){
+            if($usuarios[$user] == md5($pass)){   
+                if (isset($GLOBALS['productos'][$categoria])) {
+                    $res = implode(" | ",$GLOBALS['productos'][$categoria]);
+                    $RespuestaGetProd = array(
+                        'code' => 200,
+                        'message' => $GLOBALS['respuestas'][200],
+                        'data' => $res,
+                        'status' => 'exito'
+                    );
+                    return $RespuestaGetProd;
+                } 
+                else {
+                    $resp = array(
+                        'code' => 300,
+                        'message' => $GLOBALS['respuestas'][300],
+                        'data' => '',
+                        'status' => 'error'
+                    );
+                    return $resp;
+                }       
+            }
+            else {
+                $resp = array(
+                    'code' => 501,
+                    'message' => $GLOBALS['respuestas'][501],
+                    'data' => '',
+                    'status' => 'error'
+                );
+                return $resp;
+            }
+        } else {
+            $resp = array(
+                'code' => 500,
+                'message' => $GLOBALS['respuestas'][500],
+                'data' => '',
+                'status' => 'error'
+            );
+            return $resp;
 
-        if ( array_key_exists($categoria, $productos) ) {
-            $json_data = json_encode($productos[$categoria], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-            //error_log( var_export($json_data, true) );    // USAR EN CASO DE RESULTADO INESPERADO
-            return $json_data;
-        }
-        else {
-            error_log($categoria);
-            return "No hay productos de esta categoria";
-        }
-    }
+        }     
+    };
 
-    function getDetails($isbn) {
+    function getDetails($user, $pass, $isbn) {
         global $detalles;
+        global $usuarios;
+        $respuesta = "";
+        $res = '';
+        if(array_key_exists($user, $usuarios)){
+            if($usuarios[$user] == md5($pass)){
+                if ( array_key_exists($isbn, $detalles) ) {
+                $res = implode("",$detalles[$isbn]);
+                    $RespuestaGetDetails = array (
+                        'code' => 201,
+                                'message' => $GLOBALS['respuestas'][201],
+                                'data' => $res,
+                                'status' => 'exito',
+                                'oferta' => 'false'
+                    );
+                    return $RespuestaGetDetails;
+                }
+                else {
+                    $resp = array(
+                        'code' => 301,
+                        'message' => $GLOBALS['respuestas'][301],
+                        'data' => '',
+                        'status' => 'error'
+                    );
+                    return $resp;  
+                }
+            }
+            else {
+                $resp = array(
+                    'code' => 501,
+                    'message' => $GLOBALS['respuestas'][501],
+                    'data' => '',
+                    'status' => 'error'
+                );
+                return $resp;
+            }
+        } else {
+            $resp = array(
+                'code' => 500,
+                'message' => $GLOBALS['respuestas'][500],
+                'data' => '',
+                'status' => 'error'
+            );
+            return $resp;
+        }
+    };
 
-        if ( array_key_exists($isbn, $detalles) ) {
-            $json_data = json_encode($detalles[$isbn], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-            //error_log( var_export($json_data, true) );    // USAR EN CASO DE RESULTADO INESPERADO
-            return $json_data;
-        }
-        else {
-            error_log($isbn);
-            return "No hay detalles de esta isbn";
-        }
-    }
+    
   
     // Exposición del servicio (WSDL)
     //$data = !empty($HTTP_RAW_POST_DATA)?$HTTP_RAW_POST_DATA:'';
