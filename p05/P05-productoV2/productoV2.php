@@ -182,7 +182,7 @@
         999 => 'Error no identificado'
     );
     // Array de la respuesta para el metodo getProduct
-    $resp = array(
+    $RespuestaGetProd = array(
         'code' => 999,
         'message' => $respuestas[999],
         'data' => '',
@@ -190,7 +190,7 @@
     );
 
     //Array de la respuesta para el metodo getDetails
-    $resp2 = array(
+    $RespuestaGetDetails = array(
         'code' => 999,
         'message' => $respuestas[999],
         'data' => '',
@@ -250,7 +250,8 @@
             );
             return $resp;
 
-        }     
+        }  
+        return $RespuestaGetProd;  
     };
 
     function getDetails($user, $pass, $isbn) {
@@ -267,38 +268,42 @@
                                 'message' => $GLOBALS['respuestas'][201],
                                 'data' => $res,
                                 'status' => 'exito',
-                                'oferta' => 'false'
+                                'oferta' => 1
                     );
                     return $RespuestaGetDetails;
                 }
                 else {
-                    $resp = array(
+                    $RespuestaGetDetails = array(
                         'code' => 301,
                         'message' => $GLOBALS['respuestas'][301],
                         'data' => '',
-                        'status' => 'error'
+                        'status' => 'error',
+                        'oferta' => 0 
                     );
-                    return $resp;  
+                    return $RespuestaGetDetails;  
                 }
             }
             else {
-                $resp = array(
+                $RespuestaGetDetails = array(
                     'code' => 501,
                     'message' => $GLOBALS['respuestas'][501],
                     'data' => '',
-                    'status' => 'error'
+                    'status' => 'error',
+                    'oferta' => 0 
                 );
-                return $resp;
+                return $RespuestaGetDetails;
             }
         } else {
-            $resp = array(
+            $RespuestaGetDetails = array(
                 'code' => 500,
                 'message' => $GLOBALS['respuestas'][500],
                 'data' => '',
-                'status' => 'error'
+                'status' => 'error',
+                'oferta' => 0 
             );
-            return $resp;
+            return $RespuestaGetDetails;
         }
+        return $RespuestaGetDetails;
     };
 
     
